@@ -8,7 +8,7 @@
 <h1>Data labeler</h1>
 
 <p>upload zip file with images</p>
-<form method="post" action="/upload">
+<form method="post" enctype="multipart/form-data" action="/uploadZIP">
     <input name="file" type="file" size="150">
     <button type="submit" style="font-size: 25px;">UPLOAD</button>
 </form>
@@ -50,7 +50,7 @@
         image.onload = function () {
             ctx.drawImage(image, 0, 0);
         };
-        image.src = "./fish.jpg"
+        image.src = "/static/1/fish.png"
 
         canvas.addEventListener('mousedown', mouseDown, false);
         canvas.addEventListener('mouseup', mouseUp, false);

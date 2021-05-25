@@ -17,7 +17,7 @@
 <canvas id="canvas" style="border:3px solid #d3d3d3;">
 </canvas>
 <p>
-<button id="add" style="font-size: 22px;">ADD</button>
+<button id="add" style="font-size: 22px;" onclick="upload_label()">ADD</button>
 <select id="selected_label" name="selected_label">
     <option value="0">dictators</option>
     <option value="1">label2</option>
@@ -25,7 +25,6 @@
 </select>
 <button id="add_label" onclick="add_label()">+Label</button>
 </p>
-
 <script>
     var canvas = document.getElementById("canvas");
     canvas.height= window.innerHeight/1.5;
@@ -37,7 +36,8 @@
         "start_x": 0,
         "start_y": 0,
         "width": 0,
-        "height": 0
+        "height": 0,
+        "image": ""
     }
     var drag = false;
     var image = null;
@@ -50,8 +50,8 @@
         image.onload = function () {
             ctx.drawImage(image, 0, 0);
         };
-        image.src = "/static/1/fish.png"
-
+        image.src = "./static/1/fish.png";
+        yolo_data["image"]= image.src;
         canvas.addEventListener('mousedown', mouseDown, false);
         canvas.addEventListener('mouseup', mouseUp, false);
         canvas.addEventListener('mousemove', mouseMove, false);
@@ -74,7 +74,7 @@
         rect.w = (e.pageX - this.offsetLeft) - rect.startX;
         rect.h = (e.pageY - this.offsetTop) - rect.startY;
         ctx.strokeStyle = 'red';
-        ctx.lineWidth= 10;
+        ctx.lineWidth= 5;
         ctx.strokeRect(rect.startX, rect.startY, rect.w, rect.h);
     }
 
@@ -100,6 +100,13 @@
         option.text= "new label";
         var list= document.getElementById("selected_label");
         list.add(option, null);
+    }
+
+    function upload_label(){
+        getYolo();
+        var xhttp= new XMLHttpRequest();
+        xhttp.open("POST", "/add?"+JSON.stringify(yolo_data), true);
+        xhttp.send();
     }
     init();
 

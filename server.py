@@ -2,6 +2,8 @@ from flask import Flask, render_template, session, request, make_response, redir
 from datetime import datetime
 from os import mkdir
 from authentication import Authenticator
+import extractor
+import json
 
 
 app= Flask(__name__)
@@ -41,27 +43,31 @@ def uploadZIP():
     cookie_key= request.cookies.get('key')
 
     if auth.validate(cookie_created, cookie_key):
-        file= request.files.get('file')
-        file.save(f'./static/{cookie_created}/{file.filename}')
+        try:
+            file= request.files.get('file')
+            if file.filename.split('.')[1] != 'zip':
+                raise BaseException
+
+            file.save(f'./static/{cookie_created}/{file.filename}')
+            extractor.extract(cookie_created, file.filename)
+
+        except BaseException as err:
+            return f"""<h3>error occured {err}</h3> <a href="{url_for('index')}">back to index</a>"""
 
     return redirect(url_for('index'))
 
 
+@app.route('/add', methods= ['GET', 'POST'])
+def addLabel():
+    received_data= dict(request.args)
+    dataS= list(received_data.keys())[0]
+    yolo_data= json.loads(dataS)
+
+    return "STATUS 200"
+
 
 if __name__ == '__main__':
     app.run(port= 888, host= 'localhost', debug= True)
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

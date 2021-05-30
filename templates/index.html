@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>labeling</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 </head>
 
 <body>
@@ -24,7 +25,8 @@
     <option value="2">label3</option>
 </select>
 <button id="add_label" onclick="add_label()">+Label</button>
-<button id="next image" onclick="next_image()">NEXT</button>
+<button id="previous_image" onclick="previous_image()">PREVIOUS</button>
+<button id="next_image" onclick="next_image()">NEXT</button>
 </p>
 <script>
     var canvas = document.getElementById("canvas");
@@ -51,7 +53,7 @@
         image.onload = function () {
             ctx.drawImage(image, 0, 0);
         };
-        image.src = "{{image_path}}";
+        image.src = "{{ image_path }}";
         yolo_data["image"]= image.src;
         canvas.addEventListener('mousedown', mouseDown, false);
         canvas.addEventListener('mouseup', mouseUp, false);
@@ -91,8 +93,6 @@
 
         var optionList= document.getElementById("selected_label");
         yolo_data["label_index"]= optionList.value;
-
-
     }
 
     function add_label(){
@@ -109,22 +109,7 @@
         xhttp.open("POST", "/add?"+JSON.stringify(yolo_data), true);
         xhttp.send();
     }
-
-    function next_image(){
-        var im_path= "";
-        currentImage= yolo_data["image"];
-        var xhttp= new XMLHttpRequest();
-        xhttp.onreadystatechange = function() {
-            if (xhttp.readyState === 4) {
-                image.src= xhttp.response;
-            }
-        }
-        xhttp.open("POST", "/nextImage?current="+currentImage, true);
-        xhttp.send();
-    }
-
     init();
-
 </script>
 
 </body>

@@ -99,9 +99,10 @@
 
     function add_label(){
         var option= document.createElement("option");
-        option.value= "4";
-        option.text= "new label";
         var list= document.getElementById("selected_label");
+        var label= prompt("new label");
+        option.value= list.length;
+        option.text= label;
         list.add(option, null);
     }
 

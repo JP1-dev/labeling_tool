@@ -6,13 +6,13 @@ from os import mkdir
 from authentication import Authenticator
 import extractor
 import json
-
+import os
 
 app= Flask(__name__)
 
 auth= Authenticator('5fkLAwr83MYxc445Tejvbdjn5Uo5SaWr5KbTZ812p93gc7403aQw')
 
-currentImage= {}
+
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -24,34 +24,48 @@ def index():
         id= str(request.remote_addr) + 'SEP' + str(datetime.now()).replace(' ', '-')
         resp.set_cookie('created', id)
         resp.set_cookie('key', auth.sign(id))
-
         try:
             mkdir(f'./static/{id}')
-            currentImage[id]= 0
+            os.system(f'cp ~/coding/Python/basic/bus.jpg ~/coding/Python/labeling_tool/static/{id}/bus.jpg')
         except FileExistsError:
             pass
         return resp
 
     if auth.validate(cookie_id, cookie_key):
-        try:
-            allDirs= os.listdir(f'./static/{cookie_id}')
-        except BaseException:
-            allDirs= []
-
-        if not allDirs:
-            print('yeahhh')
-            image_path= './static/default/fish.png'
-            return render_template("index.html", id= cookie_id, image_path= image_path)
-
-        else:
-            print('mist')
-            image_path= f'./static/{cookie_id}/{allDirs[currentImage[cookie_id]]}'
-            return render_template("index.html", id= cookie_id, image_path= image_path)
-
+        return redirect(url_for('index') + '0')
     resp= make_response(redirect(url_for('index')))
     resp.set_cookie('created', '', expires= 0)
     resp.set_cookie('key', '', expires= 0)
     return resp
+
+
+@app.route('/<im>')
+def image(im):
+    im= int(im)
+    cookie_id = request.cookies.get('created')
+    cookie_key = request.cookies.get('key')
+    if auth.validate(cookie_id, cookie_key) or True:
+        dir= os.listdir(f'./static/{cookie_id}')
+        im_path= dir[im]
+        url_next= f'http://localhost:5555/{im + 1 if im < len(dir)-1 else len(dir)-1}'
+        url_previous= f'http://localhost:5555/{im-1 if im > 0 else 0}'
+        print(url_previous)
+        return render_template(
+            'index.html',
+            id= cookie_id,
+            image_path= f'./static/{cookie_id}/{im_path}',
+            url_next= url_next,
+            url_previous= url_previous
+        )
+
+
+@app.route('/add', methods= ['GET', 'POST'])
+def addLabel():
+    received_data= dict(request.args)
+    dataS= list(received_data.keys())[0]
+    yolo_data= json.loads(dataS)
+
+    return "STATUS200"
 
 
 @app.route('/uploadZIP', methods=['GET', 'POST'])
@@ -72,26 +86,6 @@ def uploadZIP():
             return f"""<h3>error occured {err}</h3> <a href="{url_for('index')}">back to index</a>"""
 
     return redirect(url_for('index'))
-
-
-@app.route('/add', methods= ['GET', 'POST'])
-def addLabel():
-    received_data= dict(request.args)
-    dataS= list(received_data.keys())[0]
-    yolo_data= json.loads(dataS)
-
-    return "STATUS200"
-
-
-@app.route('/nextImage', methods= ['GET', 'POST'])
-def nextImage():
-    current= request.args.get('current')
-    id= request.cookies.get('created')
-    allDir= os.listdir(f'./static/{id}')
-    if int(current) + 1 < len(allDir):
-        currentImage[id]+= 1
-        return 'STATUS200'
-    return 'last image reached'
 
 
 if __name__ == '__main__':

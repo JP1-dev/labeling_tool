@@ -11,6 +11,8 @@ def extract(id, filename):
     lstOfAllFiles= os.listdir(f'./static/{id}/{dir_name}/images')
     for element in lstOfAllFiles:
         shutil.move(f'./static/{id}/{dir_name}/images/{element}', f'./static/{id}/{element}')
+        txtFilename= f"./static/{id}/{element.replace(element.split('.')[-1], 'txt')}"
+        open(txtFilename, 'a').close()
     os.rmdir(f'./static/{id}/{dir_name}/images')
     os.rmdir(f'./static/{id}/{dir_name}')
     os.remove(f'./static/{id}/{filename}')

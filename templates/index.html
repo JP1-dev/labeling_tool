@@ -20,10 +20,9 @@
 <p>
 <button id="add" style="font-size: 22px;" onclick="upload_label()">ADD</button>
 <select id="selected_label" name="selected_label">
-    <option value="0">dictators</option>
-    <option value="1">label2</option>
-    <option value="2">label3</option>
+    <option value="0">labelXY</option>
 </select>
+
 <button id="add_label" onclick="add_label()">+Label</button>
 <input type="button" onclick="location.href='{{ url_previous }}';" value="<-- PREVIOUS" />
 <input type="button" onclick="location.href='{{ url_next }}';" value="NEXT -->"/>
@@ -38,8 +37,8 @@
     var rect = {};
     var yolo_data= {
         "label_index": -1,
-        "start_x": 0,
-        "start_y": 0,
+        "middle_x": 0,
+        "middle_y": 0,
         "width": 0,
         "height": 0,
         "image": ""
@@ -84,12 +83,12 @@
     }
 
     function getYolo(){
-        var x_start= rect.startX/image.width;
-        var y_start= rect.startY/image.height;
         var width= Math.abs(rect.w/image.width);
         var height= Math.abs(rect.h/image.height);
-        yolo_data["start_x"]= x_start;
-        yolo_data["start_y"]= y_start;
+        var x_middle= (rect.startX + (width*image.width)/2)/image.width;
+        var y_middle= (rect.startY + (height*image.height)/2)/image.width;
+        yolo_data["middle_x"]= x_middle;
+        yolo_data["middle_y"]= y_middle;
         yolo_data["width"]= width;
         yolo_data["height"]= height;
 
@@ -98,12 +97,15 @@
     }
 
     function add_label(){
-        var option= document.createElement("option");
         var list= document.getElementById("selected_label");
-        var label= prompt("new label");
-        option.value= list.length;
-        option.text= label;
-        list.add(option, null);
+        var label= prompt("new label: ");
+        if(list[0].text === 'labelXY'){
+            list[0].text= label;
+        }else{
+            var option= document.createElement("option");
+            option.text= label;
+            list.add(option, null);
+        }
     }
 
     function upload_label(){

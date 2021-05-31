@@ -1,12 +1,16 @@
 import os
 
-from flask import Flask, render_template, session, request, make_response, redirect, url_for
+from flask import Flask, render_template, session, request, make_response, redirect, url_for, jsonify
 from datetime import datetime
+import os
 from os import mkdir
+from os.path import isfile, join
 from authentication import Authenticator
 import extractor
 import json
-import os
+from process_yolo import process_yolo
+from rescale import rescale
+
 
 app= Flask(__name__)
 
@@ -26,7 +30,8 @@ def index():
         resp.set_cookie('key', auth.sign(id))
         try:
             mkdir(f'./static/{id}')
-            os.system(f'cp ~/coding/Python/basic/bus.jpg ~/coding/Python/labeling_tool/static/{id}/bus.jpg')
+            mkdir(f'./static/{id}/labels')
+            os.system(f'cp ~/coding/Python/labeling_tool/static/default/eagle.jpg ~/coding/Python/labeling_tool/static/{id}/eagle.jpg')
         except FileExistsError:
             pass
         return resp
@@ -45,7 +50,7 @@ def image(im):
     cookie_id = request.cookies.get('created')
     cookie_key = request.cookies.get('key')
     if auth.validate(cookie_id, cookie_key) or True:
-        dir= os.listdir(f'./static/{cookie_id}')
+        dir= [f for f in os.listdir(f'./static/{cookie_id}') if isfile(join(f'./static/{cookie_id}', f))]
         im_path= dir[im]
         url_next= f'http://localhost:5555/{im + 1 if im < len(dir)-1 else len(dir)-1}'
         url_previous= f'http://localhost:5555/{im-1 if im > 0 else 0}'
@@ -61,11 +66,14 @@ def image(im):
 
 @app.route('/add', methods= ['GET', 'POST'])
 def addLabel():
+    id= request.cookies.get('created')
     received_data= dict(request.args)
     dataS= list(received_data.keys())[0]
     yolo_data= json.loads(dataS)
-
-    return "STATUS200"
+    process_yolo(id, yolo_data)
+    resp= make_response(jsonify({'status': 'SUCCESS'}))
+    resp.status_code= 200
+    return resp
 
 
 @app.route('/uploadZIP', methods=['GET', 'POST'])

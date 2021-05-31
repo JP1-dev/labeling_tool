@@ -19,6 +19,7 @@
 </canvas>
 <p>
 <button id="add" style="font-size: 22px;" onclick="upload_label()">ADD</button>
+
 <select id="selected_label" name="selected_label">
     <option value=0>labelXY</option>
 </select>
@@ -30,11 +31,11 @@
 <input type="button" onclick="location.href='{{ label_download }}';" value="download labels"/>
 
 <script>
-    var canvas = document.getElementById("canvas");
+    var canvas= document.getElementById("canvas");
     canvas.height= window.innerHeight/1.5;
     canvas.width= window.innerWidth/1.5;
-    var ctx = canvas.getContext("2d");
-    var rect = {};
+    var ctx= canvas.getContext("2d");
+    var rect= {};
     var yolo_data= {
         "label_index": -1,
         "middle_x": 0,
@@ -50,7 +51,7 @@
     add_button.addEventListener("click", getYolo);
 
     function init() {
-        image = new Image();
+        image= new Image();
         image.onload = function () {
             ctx.drawImage(image, 0, 0);
         };
@@ -59,6 +60,18 @@
         canvas.addEventListener('mousedown', mouseDown, false);
         canvas.addEventListener('mouseup', mouseUp, false);
         canvas.addEventListener('mousemove', mouseMove, false);
+
+        var list= document.getElementById("selected_label");
+        var localStore= allStorage();
+        if(localStore.length !== 0){
+            list[0].text= localStore[0];
+            for(var i=1; i<localStore.length; i++){
+                var option= document.createElement("option");
+                option.text= localStore[i];
+                option.value= i;
+                list.add(option, null);
+            }
+        }
     }
 
     function mouseDown(e) {
@@ -91,8 +104,6 @@
         yolo_data["middle_y"]= y_middle;
         yolo_data["width"]= width;
         yolo_data["height"]= height;
-
-        var optionList= document.getElementById("selected_label");
         yolo_data["label_index"]= optionList.value;
     }
 
@@ -101,11 +112,13 @@
         var label= prompt("new label: ");
         if(list[0].text === 'labelXY'){
             list[0].text= label;
+            setLabel(0, label);
         }else{
             var option= document.createElement("option");
             option.text= label;
             option.value= list.length;
             list.add(option, null);
+            setLabel(list.length-1,label);
         }
     }
 
@@ -115,6 +128,22 @@
         xhttp.open("POST", "/add?"+JSON.stringify(yolo_data), true);
         xhttp.send();
     }
+
+    function setLabel(index, name){
+        localStorage.setItem(index.toString(), name);
+    }
+
+    function allStorage() {
+        var values= [];
+        var keys= Object.keys(localStorage);
+        var i= keys.length;
+        while (i--) {
+            values.push(localStorage.getItem(keys[i]));
+        }
+        return values;
+    }
+
+
     init();
 </script>
 

@@ -40,6 +40,7 @@ def index():
 
     if auth.validate(cookie_id, cookie_key):
         return redirect(url_for('index') + '0')
+
     resp= make_response(redirect(url_for('index')))
     resp.set_cookie('created', '', expires= 0)
     resp.set_cookie('key', '', expires= 0)
@@ -51,20 +52,26 @@ def image(im):
     im= int(im)
     cookie_id = request.cookies.get('created')
     cookie_key = request.cookies.get('key')
-    if auth.validate(cookie_id, cookie_key) or True:
-        dir= [f for f in os.listdir(f'./static/{cookie_id}') if isfile(join(f'./static/{cookie_id}', f))]
-        im_path= dir[im]
-        url_next= host_url + str(im + 1 if im < len(dir)-1 else len(dir)-1)
-        url_previous= host_url + str(im-1 if im > 0 else 0)
-        print(url_previous)
-        return render_template(
-            'index.html',
-            id= cookie_id,
-            image_path= f'./static/{cookie_id}/{im_path}',
-            url_next= url_next,
-            url_previous= url_previous,
-            label_download= host_url + 'download'
-        )
+    try:
+        if auth.validate(cookie_id, cookie_key):
+            dir= [f for f in os.listdir(f'./static/{cookie_id}') if isfile(join(f'./static/{cookie_id}', f))]
+            im_path= dir[im]
+            url_next= host_url + str(im + 1 if im < len(dir)-1 else len(dir)-1)
+            url_previous= host_url + str(im-1 if im > 0 else 0)
+            print(url_previous)
+            return render_template(
+                'index.html',
+                id= cookie_id,
+                image_path= f'./static/{cookie_id}/{im_path}',
+                url_next= url_next,
+                url_previous= url_previous,
+                label_download= host_url + 'download'
+            )
+    except BaseException:
+        resp = make_response(redirect(url_for('index')))
+        resp.set_cookie('created', '', expires=0)
+        resp.set_cookie('key', '', expires=0)
+        return resp
 
 
 @app.route('/add', methods= ['GET', 'POST'])

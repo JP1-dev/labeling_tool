@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, render_template, session, request, make_response, redirect, url_for, jsonify
+from flask import Flask, render_template, session, request, make_response, redirect, url_for, jsonify, send_file
 from datetime import datetime
 import os
 from os import mkdir
@@ -10,12 +10,14 @@ import extractor
 import json
 from process_yolo import process_yolo
 from rescale import rescale
+from labelsZipper import getLabels
 
 
 app= Flask(__name__)
 
 auth= Authenticator('5fkLAwr83MYxc445Tejvbdjn5Uo5SaWr5KbTZ812p93gc7403aQw')
 
+host_url= 'http://localhost:5555/'
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -31,7 +33,7 @@ def index():
         try:
             mkdir(f'./static/{id}')
             mkdir(f'./static/{id}/labels')
-            os.system(f'cp ~/coding/Python/labeling_tool/static/default/eagle.jpg ~/coding/Python/labeling_tool/static/{id}/eagle.jpg')
+            os.system(f'cp ./static/default/eagle.jpg ./static/{id}/eagle.jpg')
         except FileExistsError:
             pass
         return resp
@@ -52,15 +54,16 @@ def image(im):
     if auth.validate(cookie_id, cookie_key) or True:
         dir= [f for f in os.listdir(f'./static/{cookie_id}') if isfile(join(f'./static/{cookie_id}', f))]
         im_path= dir[im]
-        url_next= f'http://localhost:5555/{im + 1 if im < len(dir)-1 else len(dir)-1}'
-        url_previous= f'http://localhost:5555/{im-1 if im > 0 else 0}'
+        url_next= host_url + str(im + 1 if im < len(dir)-1 else len(dir)-1)
+        url_previous= host_url + str(im-1 if im > 0 else 0)
         print(url_previous)
         return render_template(
             'index.html',
             id= cookie_id,
             image_path= f'./static/{cookie_id}/{im_path}',
             url_next= url_next,
-            url_previous= url_previous
+            url_previous= url_previous,
+            label_download= host_url + 'download'
         )
 
 
@@ -94,6 +97,15 @@ def uploadZIP():
             return f"""<h3>error occured {err}</h3> <a href="{url_for('index')}">back to index</a>"""
 
     return redirect(url_for('index'))
+
+
+@app.route('/download')
+def download():
+    cookie_id= request.cookies.get('created')
+    key= request.cookies.get('key')
+    if auth.validate(cookie_id, key):
+        zip_name= getLabels(cookie_id)
+        return send_file(zip_name, as_attachment= True)
 
 
 if __name__ == '__main__':

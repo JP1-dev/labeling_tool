@@ -1,153 +1,465 @@
-<!doctype html>
-<html>
-<head>
-    <title>labeling</title>
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-</head>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+		<meta charset="UTF-8" />
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+        <style>
+            body {
+                overflow-y: hidden; 
+                overflow-x: hidden;
+                color: white;
+                background-color: black;
+            }
 
-<body>
-<h1>Data labeler</h1>
+            canvas {
+                animation: fadeInAnimation ease 2s;
+                animation-iteration-count: 1;
+                animation-fill-mode: forwards;
+            }
 
-<p>upload zip file with images</p>
-<form method="post" enctype="multipart/form-data" action="/uploadZIP">
-    <input name="file" type="file" size="150">
-    <button type="submit" style="font-size: 25px;">UPLOAD</button>
-</form>
-<br>
+            @keyframes fadeInAnimation {
+                0% {
+                    opacity: 0;
+                }
+                100% {
+                    opacity: 1;
+                }
+            }
 
-<canvas id="canvas" style="border:3px solid #d3d3d3;">
-</canvas>
-<p>
-<button id="add" style="font-size: 22px;" onclick="upload_label()">ADD</button>
+            .home-container {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                top: 0;
+                left: 0;
+            }
 
-<select id="selected_label" name="selected_label">
-    <option value=0>labelXY</option>
-</select>
+            .home-container > input,
+            .home-container > a {
+                position: fixed;
+                bottom: 0px;
+                width: 50%;
+                cursor: pointer;
+                text-align: center;
+                height: 34px;
+                line-height: 34px;
+            }
 
-<button id="add_label" onclick="add_label()">+Label</button>
-<input type="button" onclick="location.href='{{ url_previous }}';" value="<-- PREVIOUS" />
-<input type="button" onclick="location.href='{{ url_next }}';" value="NEXT -->"/>
-</p>
-<input type="button" onclick="location.href='{{ label_download }}';" value="download labels"/>
+            .home-container > input {
+                opacity: 0;
+                z-index: 1000;
+            }
 
-<script>
-    var canvas= document.getElementById("canvas");
-    canvas.height= window.innerHeight/1.5;
-    canvas.width= window.innerWidth/1.5;
-    var ctx= canvas.getContext("2d");
-    var rect= {};
-    var yolo_data= {
-        "label_index": -1,
-        "middle_x": 0,
-        "middle_y": 0,
-        "width": 0,
-        "height": 0,
-        "image": ""
-    }
-    var drag = false;
-    var image = null;
+            .home-container > a {
+                z-index: 10;
+                font-weight: 700;
+                background: #121212;
+                color: #fff;
+                text-shadow: 1px 1px 1px rgba(151,24,64,0.2);
+            }
 
-    var add_button= document.getElementById("add");
-    add_button.addEventListener("click", getYolo);
+            .home-container:before {
+                content: '';
+                width: 100%;
+                height: 34px;
+                background: #1f1f1f;
+                z-index: 9;
+                bottom: 0;
+            }
 
-    function init() {
-        image= new Image();
-        image.onload = function () {
-            ctx.drawImage(image, 0, 0);
-        };
-        image.src = "{{ image_path }}";
-        yolo_data["image"]= image.src;
-        canvas.addEventListener('mousedown', mouseDown, false);
-        canvas.addEventListener('mouseup', mouseUp, false);
-        canvas.addEventListener('mousemove', mouseMove, false);
+            #home-control, #home-control + a {
+                left: 0%;
+                text-decoration: none;
+            }
 
-        var list= document.getElementById("selected_label");
-        var localStore= allStorage();
-        if(localStore.length !== 0){
-            list[0].text= localStore[0];
-            for(var i=1; i<localStore.length; i++){
-                var option= document.createElement("option");
-                option.text= localStore[i];
-                option.value= i;
-                list.add(option, null);
+            #about-control, #about-control + a {
+                left: 50%;
+                text-decoration: none;
+            }
+
+            .home-container > input:checked + a,
+            .home-container > input:checked:hover + a{
+                background: #1f1f1f;
+            }
+
+            .home-container > input:hover + a{
+                background: #292929;
+            }
+
+            .home-container > input:hover + a:after {
+                border-bottom-color: #292929;
+            }
+
+            .scroll,
+            .general-panel {
+                position: relative;
+                width: 100%;
+                height: 100%;
+            }
+
+            .scroll {
+                top: 0;
+                left: 0;
+                -webkit-transition: all 0.6s ease-in-out;
+                -moz-transition: all 0.6s ease-in-out;
+                -o-transition: all 0.6s ease-in-out;
+                -ms-transition: all 0.6s ease-in-out;
+                transition: all 0.6s ease-in-out;
+                -webkit-transform: translate3d(0, 0, 0);
+                -webkit-backface-visibility: hidden;
+            }
+
+            .general-panel{
+                background-color: #121212;
+                overflow: hidden;
+                text-align: center;
+            } 
+
+            #home-control:checked ~ .scroll {
+                -webkit-transform: translateY(0%);
+                -moz-transform: translateY(0%);
+                -o-transform: translateY(0%);
+                -ms-transform: translateY(0%);
+                transform: translateY(0%);
+            }
+            #about-control:checked ~ .scroll {
+                -webkit-transform: translateY(-100%);
+                -moz-transform: translateY(-100%);
+                -o-transform: translateY(-100%);
+                -ms-transform: translateY(-100%);
+                transform: translateY(-100%);
+            }
+
+            .general-panel h2 {
+                color: white;
+                font-size: 40px;
+                font-weight: 900;
+                -webkit-backface-visibility: hidden;
+            }
+
+            #home-control:checked ~ .scroll #home-panel h2,
+            #about-control:checked ~ .scroll #about-panel h2{
+                -webkit-animation: moveDown 0.6s ease-in-out 0.2s backwards;
+                -moz-animation: moveDown 0.6s ease-in-out 0.2s backwards;
+                -o-animation: moveDown 0.6s ease-in-out 0.2s backwards;
+                -ms-animation: moveDown 0.6s ease-in-out 0.2s backwards;
+                animation: moveDown 0.6s ease-in-out 0.2s backwards;
+            }
+
+            @-webkit-keyframes moveDown{
+                0% { 
+                    -webkit-transform: translateY(-40px); 
+                    opacity: 0;
+                }
+                100% { 
+                    -webkit-transform: translateY(0px);  
+                    opacity: 1;
+                }
+            }
+
+            @-moz-keyframes moveDown{
+                0% { 
+                    -moz-transform: translateY(-40px); 
+                    opacity: 0;
+                }
+                100% { 
+                    -moz-transform: translateY(0px);  
+                    opacity: 1;
+                }
+            }
+
+            @-o-keyframes moveDown{
+                0% { 
+                    -o-transform: translateY(-40px); 
+                    opacity: 0;
+                }
+                100% { 
+                    -o-transform: translateY(0px);  
+                    opacity: 1;
+                }
+            }
+
+            @-ms-keyframes moveDown{
+                0% { 
+                    -ms-transform: translateY(-40px); 
+                    opacity: 0;
+                }
+                100% { 
+                    -ms-transform: translateY(0px);  
+                    opacity: 1;
+                }
+            }
+
+            @keyframes moveDown{
+                0% { 
+                    transform: translateY(-40px); 
+                    opacity: 0;
+                }
+                100% { 
+                    transform: translateY(0px);  
+                    opacity: 1;
+                }
+            }
+
+            .general-panel p {
+                font-size: 16px;
+                line-height: 22px;
+                color: #8b8b8b;
+                z-index: 2;
+                padding: 0;
+                margin: 10px 0 0 0;
+                -webkit-backface-visibility: hidden;
+            }
+            #home-control:checked ~ .scroll #home-panel p,
+            #about-control:checked ~ .scroll #about-panel p{
+                -webkit-animation: moveUp 0.6s ease-in-out 0.2s backwards;
+                -moz-animation: moveUp 0.6s ease-in-out 0.2s backwards;
+                -o-animation: moveUp 0.6s ease-in-out 0.2s backwards;
+                -ms-animation: moveUp 0.6s ease-in-out 0.2s backwards;
+                animation: moveUp 0.6s ease-in-out 0.2s backwards;
+            }
+
+            @-webkit-keyframes moveUp{
+                0% { 
+                    -webkit-transform: translateY(40px); 
+                    opacity: 0;
+                }
+                100% { 
+                    -webkit-transform: translateY(0px);  
+                    opacity: 1;
+                }
+            }
+
+            @-moz-keyframes moveUp{
+                0% { 
+                    -moz-transform: translateY(40px); 
+                    opacity: 0;
+                }
+                100% { 
+                    -moz-transform: translateY(0px);  
+                    opacity: 1;
+                }
+            }
+
+            @-o-keyframes moveUp{
+                0% { 
+                    -o-transform: translateY(40px); 
+                    opacity: 0;
+                }
+                100% { 
+                    -o-transform: translateY(0px);  
+                    opacity: 1;
+                }
+            }
+
+            @-ms-keyframes moveUp{
+                0% { 
+                    -ms-transform: translateY(40px); 
+                    opacity: 0;
+                }
+                100% { 
+                    -ms-transform: translateY(0px);  
+                    opacity: 1;
+                }
+            }
+
+            @keyframes moveUp{
+                0% { 
+                    transform: translateY(40px); 
+                    opacity: 0;
+                }
+                100% { 
+                    transform: translateY(0px);  
+                    opacity: 1;
+                }
+            }
+
+            @media screen and (max-width: 520px) {
+            .st-panel h2 {
+                font-size: 42px;
+            }
+            
+            .st-panel p {
+                width: 90%;
+                left: 5%;
+                margin-top: 0;
+            }
+            
+            .st-container > a {
+                font-size: 13px;
             }
         }
-    }
 
-    function mouseDown(e) {
-        rect.startX = e.pageX - this.offsetLeft;
-        rect.startY = e.pageY - this.offsetTop;
-        drag = true;
-    }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+			<div class="home-container">
+				<input type="radio" name="radio-set" checked="checked" id="home-control"/>
+				<a href="#home-panel">Home</a>
+				<input type="radio" name="radio-set" id="about-control"/>
+				<a href="#about-panel">About</a>
+				
+				<div class="scroll">
+					<section class="general-panel" id="home-panel">
+                        <h1 style="font-size: 40px;"><img src="{{ url_for('static', filename='favicon.jpg') }}" width=70 height=60 style="margin-bottom: -12px;"> Data Labeler</h1>
+                        <form method="post" enctype="multipart/form-data" action="/uploadZIP">
+                            <input name="file" type="file" size="150">
+                            <button type="submit" style="font-size: 25px;">UPLOAD</button>
+                        </form>
+                        <br>
+                        
+                        <canvas id="canvas" style="border:3px solid #292929; background-color: #292929;">
+                        </canvas>
+                        <div style="text-align: center;">
+                        <button id="add" style="font-size: 22px;" onclick="upload_label()">ADD</button>
 
-    function mouseUp() {
-        drag = false;
-    }
+                        <select id="selected_label" name="selected_label">
+                            <option value=0>labelXY</option>
+                        </select>
 
-    function mouseMove(e){
-        if(!drag) return 0;
-        ctx.clearRect(0,0, canvas.width, canvas.height);
-        ctx.drawImage(image, 0,0);
-        rect.w = (e.pageX - this.offsetLeft) - rect.startX;
-        rect.h = (e.pageY - this.offsetTop) - rect.startY;
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth= 5;
-        ctx.strokeRect(rect.startX, rect.startY, rect.w, rect.h);
-    }
+                        <button id="add_label" onclick="add_label()">+Label</button>
+                        <input type="button" onclick="location.href='{{ url_previous }}';" value="<-- PREVIOUS" />
+                        <input type="button" onclick="location.href='{{ url_next }}';" value="NEXT -->"/>
+                        </div>
+                        <p></p>
+                        <input type="button" onclick="location.href='{{ label_download }}';" value="download labels"/>
 
-    function getYolo(){
-        var width= Math.abs(rect.w/image.width);
-        var height= Math.abs(rect.h/image.height);
-        var x_middle= (rect.startX + (width*image.width)/2)/image.width;
-        var y_middle= (rect.startY + (height*image.height)/2)/image.width;
-        yolo_data["middle_x"]= x_middle;
-        yolo_data["middle_y"]= y_middle;
-        yolo_data["width"]= width;
-        yolo_data["height"]= height;
-        var optionList= document.getElementById("selected_label");
-        yolo_data["label_index"]= optionList.value;
-    }
+                        <script>
+                            var canvas= document.getElementById("canvas");
+                            canvas.height= window.innerHeight/1.5;
+                            canvas.width= window.innerWidth/1.5;
+                            var ctx= canvas.getContext("2d");
+                            var rect= {};
+                            var yolo_data= {
+                                "label_index": -1,
+                                "middle_x": 0,
+                                "middle_y": 0,
+                                "width": 0,
+                                "height": 0,
+                                "image": ""
+                            }
+                            var drag = false;
+                            var image = null;
 
-    function add_label(){
-        var list= document.getElementById("selected_label");
-        var label= prompt("new label: ");
-        if(list[0].text === 'labelXY'){
-            list[0].text= label;
-            setLabel(0, label);
-        }else{
-            var option= document.createElement("option");
-            option.text= label;
-            option.value= list.length;
-            list.add(option, null);
-            setLabel(list.length-1,label);
-        }
-    }
+                            var add_button= document.getElementById("add");
+                            add_button.addEventListener("click", getYolo);
 
-    function upload_label(){
-        getYolo();
-        var xhttp= new XMLHttpRequest();
-        xhttp.open("POST", "/add?"+JSON.stringify(yolo_data), true);
-        xhttp.send();
-    }
+                            function init() {
+                                image= new Image();
+                                image.onload = function () {
+                                    ctx.drawImage(image, 0, 0);
+                                };
+                                image.src = "{{ image_path }}";
+                                yolo_data["image"]= image.src;
+                                canvas.addEventListener('mousedown', mouseDown, false);
+                                canvas.addEventListener('mouseup', mouseUp, false);
+                                canvas.addEventListener('mousemove', mouseMove, false);
 
-    function setLabel(index, name){
-        localStorage.setItem(index.toString(), name);
-    }
+                                var list= document.getElementById("selected_label");
+                                var localStore= allStorage();
+                                if(localStore.length !== 0){
+                                    list[0].text= localStore[0];
+                                    for(var i=1; i<localStore.length; i++){
+                                        var option= document.createElement("option");
+                                        option.text= localStore[i];
+                                        option.value= i;
+                                        list.add(option, null);
+                                    }
+                                }
+                            }
 
-    function allStorage() {
-        var values= [];
-        var keys= Object.keys(localStorage);
-        var i= keys.length;
-        while (i--) {
-            values.push(localStorage.getItem(keys[i]));
-        }
-        return values;
-    }
+                            function mouseDown(e) {
+                                rect.startX = e.pageX - this.offsetLeft;
+                                rect.startY = e.pageY - this.offsetTop;
+                                drag = true;
+                            }
+
+                            function mouseUp() {
+                                drag = false;
+                            }
+
+                            function mouseMove(e){
+                                if(!drag) return 0;
+                                ctx.clearRect(0,0, canvas.width, canvas.height);
+                                ctx.drawImage(image, 0,0);
+                                rect.w = (e.pageX - this.offsetLeft) - rect.startX;
+                                rect.h = (e.pageY - this.offsetTop) - rect.startY;
+                                ctx.strokeStyle = 'red';
+                                ctx.lineWidth= 5;
+                                ctx.strokeRect(rect.startX, rect.startY, rect.w, rect.h);
+                            }
+
+                            function getYolo(){
+                                var width= Math.abs(rect.w/image.width);
+                                var height= Math.abs(rect.h/image.height);
+                                var x_middle= (rect.startX + (width*image.width)/2)/image.width;
+                                var y_middle= (rect.startY + (height*image.height)/2)/image.width;
+                                yolo_data["middle_x"]= x_middle;
+                                yolo_data["middle_y"]= y_middle;
+                                yolo_data["width"]= width;
+                                yolo_data["height"]= height;
+                                var optionList= document.getElementById("selected_label");
+                                yolo_data["label_index"]= optionList.value;
+                            }
+
+                            function add_label(){
+                                var list= document.getElementById("selected_label");
+                                var label= prompt("new label: ");
+                                if(list[0].text === 'labelXY'){
+                                    list[0].text= label;
+                                    setLabel(0, label);
+                                }else{
+                                    var option= document.createElement("option");
+                                    option.text= label;
+                                    option.value= list.length;
+                                    list.add(option, null);
+                                    setLabel(list.length-1,label);
+                                }
+                            }
+
+                            function upload_label(){
+                                getYolo();
+                                var xhttp= new XMLHttpRequest();
+                                xhttp.open("POST", "/add?"+JSON.stringify(yolo_data), true);
+                                xhttp.send();
+                            }
+
+                            function setLabel(index, name){
+                                localStorage.setItem(index.toString(), name);
+                            }
+
+                            function allStorage() {
+                                var values= [];
+                                var keys= Object.keys(localStorage);
+                                var i= keys.length;
+                                while (i--) {
+                                    values.push(localStorage.getItem(keys[i]));
+                                }
+                                return values;
+                            }
 
 
-    init();
-</script>
+                            init();
+                        </script>
+					</section>
+					
+					<section class="general-panel st-color" id="general-panel">
+						<h2>About Data Labeler</h2>
+						<p style="font-size: 20px;">
+                            Data Labeler is a web-based app used to label images for machine learning. 
+                            With it's easy to use layout you can label many different pictures in just a second.
+                            It is required, to compress them into a ZIP file.
+                        </p>
+                        <p>
+                            Usage:
+                        </p>
+					</section>
 
-</body>
+				</div>
+				
+			</div>
+			
+        </div>
+	</body>
 </html>
-
